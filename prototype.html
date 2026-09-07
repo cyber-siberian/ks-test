@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Каналсервис — Заявки на выезд (прототип)</title>
+<link href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --brand-blue:#0041A0;
+  --brand-blue-2:#2F60A0;
+  --brand-red:#FF4200;
+  --brand-yellow:#FFD441;
+  --bg:#F6F6F6;
+  --surface:#FFFFFF;
+  --text:#212121;
+  --text-muted:#7A7B7B;
+  --border:#E5E5E5;
+  --link:#3E79C6;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:"Open Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size:14px;
+  line-height:1.45;
+}
+h1,h2,h3,.brand{font-family:"PT Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif}
+
+/* шапка */
+.header{
+  background:var(--brand-blue);
+  color:#fff;
+  padding:14px 24px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+.brand{font-weight:700;font-size:19px;letter-spacing:1px}
+.header-right{opacity:.75;font-size:14px}
+
+.wrap{padding:16px 24px 48px}
+
+/* служебная панель прототипа */
+.scenarios{
+  background:#EFEFEF;
+  border:1px solid var(--border);
+  border-radius:4px;
+  padding:12px 14px;
+  margin-bottom:20px;
+}
+.scenarios-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.scenarios-label{font-weight:600;margin-right:4px}
+.scenarios-note{color:var(--text-muted);font-size:12px;margin-top:8px}
+
+/* кнопки */
+.btn{
+  font-family:inherit;
+  font-size:14px;
+  padding:7px 14px;
+  border-radius:4px;
+  border:1px solid transparent;
+  background:var(--surface);
+  color:var(--text);
+  cursor:pointer;
+}
+.btn-primary{background:var(--brand-blue);border-color:var(--brand-blue);color:#fff}
+.btn-primary:hover:not(:disabled){background:var(--brand-blue-2);border-color:var(--brand-blue-2)}
+.btn-secondary{background:var(--surface);border-color:var(--brand-blue);color:var(--brand-blue)}
+.btn-secondary:hover:not(:disabled){background:#EEF3FA}
+.btn-danger{background:var(--brand-red);border-color:var(--brand-red);color:#fff}
+.btn-danger:hover:not(:disabled){background:#E03A00;border-color:#E03A00}
+.btn-plain{border-color:var(--border)}
+.btn-plain:hover:not(:disabled){background:#F0F0F0}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-sm{padding:4px 10px;font-size:13px}
+
+/* заголовок области */
+.page-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px}
+.page-head h1{font-size:22px;margin:0}
+.role{color:var(--text-muted)}
+
+/* таблица */
+table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--border)}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--border);vertical-align:middle}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--text-muted);font-weight:600;background:#FBFBFB}
+tr.req{cursor:pointer}
+tr.req:hover>td{background:#F7F9FC}
+tr.req.static{cursor:default}
+tr.req.static:hover>td{background:transparent}
+tr.req.open>td{background:#F2F6FC}
+tr.req.merged>td{background:#F2F2F2;color:var(--text-muted)}
+td.detail-cell{padding:0;background:#FAFAFA}
+.col-num{width:72px}
+.col-src{width:100px}
+.col-time{width:100px}
+.col-state{width:180px}
+.col-brig{width:170px}
+.col-act{width:130px}
+
+/* метки состояния */
+.badge{display:inline-block;padding:2px 9px;border-radius:4px;font-size:13px;border:1px solid transparent;white-space:nowrap}
+.badge-new{background:#EDEDED;color:#5C5C5C}
+.badge-assigned{background:#E4EDF9;color:var(--brand-blue)}
+.badge-work{background:var(--brand-yellow);color:#5A4600}
+.badge-dup{background:var(--brand-yellow);color:#3A2E00;border-color:var(--brand-red)}
+.badge-merged{background:#E8E8E8;color:#6A6A6A}
+
+/* панель назначения */
+.panel{padding:16px 14px;border-bottom:1px solid var(--border)}
+.panel-title{font-family:"PT Sans", system-ui, sans-serif;font-weight:700;margin-bottom:10px}
+.brigades{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.brigade{
+  border:1px solid var(--border);
+  background:var(--surface);
+  border-radius:4px;
+  padding:8px 10px;
+  cursor:pointer;
+}
+.brigade:hover{border-color:var(--brand-blue-2)}
+.brigade.selected{border-color:var(--brand-blue);background:#F2F6FC}
+.brigade-name{font-weight:600}
+.brigade-meta{color:var(--text-muted);font-size:13px}
+.tag{
+  display:inline-block;margin-top:4px;font-size:12px;
+  border:1px solid var(--border);border-radius:4px;padding:1px 6px;color:var(--brand-blue);background:#F4F7FC;
+}
+.dim{opacity:.6;pointer-events:none}
+.panel-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.hint{color:var(--text-muted);font-size:13px}
+
+/* плашки */
+.notice{border-radius:4px;padding:12px 14px;margin-bottom:14px;border:1px solid var(--border);background:var(--surface)}
+.notice b{font-family:"PT Sans", system-ui, sans-serif}
+.notice-danger{background:#FFEDE6;border-color:var(--brand-red)}
+.notice-warn{background:#FFF8DC;border-color:#E0BC33}
+.notice-dup{background:#FFF8DC;border-color:var(--brand-red)}
+.notice-muted{background:#F0F0F0;border-color:var(--border)}
+.notice-line{margin-top:4px}
+
+/* история */
+.history{padding:10px 14px;border-bottom:1px solid var(--border);background:#FCFCFC}
+.history-title{font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--text-muted);margin-bottom:4px}
+.history-item{font-size:13px}
+.history-item .t{color:var(--text-muted);margin-right:6px}
+.history-item.rejected{color:var(--brand-red)}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="brand">КАНАЛСЕРВИС</div>
+  <div class="header-right">Центр управления · Заявки на выезд</div>
+</div>
+
+<div class="wrap">
+  <div class="scenarios">
+    <div class="scenarios-row">
+      <span class="scenarios-label">Сценарий:</span>
+      <button class="btn btn-plain" data-scenario="1">1. Обычная работа</button>
+      <button class="btn btn-plain" data-scenario="2">2. Конфликт назначения</button>
+      <button class="btn btn-plain" data-scenario="3">3. Данные недоступны</button>
+      <button class="btn btn-plain" data-scenario="4">4. Недостаточно прав</button>
+      <button class="btn btn-plain" data-scenario="5">5. Возможный дубль</button>
+    </div>
+    <div class="scenarios-note">служебная панель прототипа, в бою её нет</div>
+  </div>
+
+  <div class="page-head">
+    <h1>Заявки на выезд</h1>
+    <div class="role" id="role"></div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th class="col-num">№</th>
+        <th>Адрес</th>
+        <th class="col-src">Источник</th>
+        <th class="col-time">Поступила</th>
+        <th class="col-state">Состояние</th>
+        <th class="col-brig">Бригада</th>
+        <th class="col-act">Действие</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+
+<script>
+"use strict";
+
+var BRIGADES = [
+  {n:1,  chief:"Соколов",  district:"Центральный", active:2, tv:false},
+  {n:2,  chief:"Гаврилов", district:"Центральный", active:1, tv:true},
+  {n:3,  chief:"Ильин",    district:"Северный",    active:3, tv:false},
+  {n:4,  chief:"Панин",    district:"Северный",    active:0, tv:false},
+  {n:5,  chief:"Дроздов",  district:"Южный",       active:2, tv:false},
+  {n:6,  chief:"Кузьмин",  district:"Южный",       active:1, tv:true},
+  {n:7,  chief:"Лапин",    district:"Западный",    active:0, tv:false},
+  {n:8,  chief:"Ершов",    district:"Западный",    active:2, tv:false},
+  {n:9,  chief:"Тихонов",  district:"Восточный",   active:1, tv:true},
+  {n:10, chief:"Мельник",  district:"Восточный",   active:3, tv:false},
+  {n:11, chief:"Савин",    district:"Центральный", active:1, tv:false}
+];
+
+function baseRequests(){
+  return [
+    {id:1039, addr:"Мира, 22 к. 1",      src:"УК",     at:"07:58", state:"assigned", brigade:"5, Дроздов", version:2},
+    {id:1040, addr:"Садовая, 7",         src:"Клиент", at:"08:02", state:"work",     brigade:"3, Ильин",   version:3},
+    {id:1041, addr:"Ленина, 14",         src:"УК",     at:"08:17", state:"new",      brigade:"",           version:1},
+    {id:1042, addr:"Гоголя, 11",         src:"УК",     at:"08:19", state:"new",      brigade:"",           version:1},
+    {id:1043, addr:"Мира, 22к1",         src:"Клиент", at:"09:05", state:"new",      brigade:"",           version:1},
+    {id:1044, addr:"Пролетарская, 12",   src:"Клиент", at:"09:12", state:"new",      brigade:"",           version:1}
+  ];
+}
+
+var S = null;
+
+function req(id){
+  for(var i=0;i<S.requests.length;i++){ if(S.requests[i].id===id) return S.requests[i]; }
+  return null;
+}
+function brigade(n){
+  for(var i=0;i<BRIGADES.length;i++){ if(BRIGADES[i].n===n) return BRIGADES[i]; }
+  return null;
+}
+function brigadeLabel(n){ var b=brigade(n); return b.n + ", " + b.chief; }
+
+/* условное время прототипа, шагает по 30 секунд */
+function pad(x){ return x<10 ? "0"+x : ""+x; }
+function stamp(sec){
+  var h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60), s = sec%60;
+  return pad(h)+":"+pad(m)+":"+pad(s);
+}
+function tick(){
+  var t = stamp(S.clock);
+  S.clock += 30;
+  return t;
+}
+function addHistory(id, time, text, rejected){
+  if(!S.history[id]) S.history[id] = [];
+  S.history[id].push({time:time, text:text, rejected:!!rejected});
+}
+
+function setScenario(n){
+  S = {
+    scenario: n,
+    role: (n===4 ? "observer" : "dispatcher"),
+    requests: baseRequests(),
+    history: {},
+    open: null,
+    panel: null,
+    stale: (n===3),
+    staleAt: "08:12",
+    clock: (n===2 ? 8*3600+19*60+30 : 9*3600+20*60)
+  };
+  if(n===5){ req(1043).dup = true; }
+  render();
+}
+
+function stateBadge(r){
+  if(r.state==="new")      return '<span class="badge badge-new">Новая</span>';
+  if(r.state==="assigned") return '<span class="badge badge-assigned">Назначена</span>';
+  if(r.state==="work")     return '<span class="badge badge-work">В работе</span>';
+  if(r.state==="merged")   return '<span class="badge badge-merged">Объединена с 1039</span>';
+  return "";
+}
+
+function canOpen(r){
+  if(S.role==="observer") return true;      /* откроется плашка о правах */
+  return r.state==="new";
+}
+
+/* --- открытие панели --- */
+function openRow(id){
+  var r = req(id);
+  if(S.open===id){ S.open=null; S.panel=null; return render(); }
+  if(S.role==="observer"){
+    S.open = id;
+    S.panel = {mode:"denied"};
+    return render();
+  }
+  if(r.state!=="new") return;
+  S.open = id;
+  if(S.scenario===5 && r.dup){
+    S.panel = {mode:"dup", selected:null};
+  } else if(S.stale){
+    S.panel = {mode:"stale", selected:null, retrying:false};
+  } else {
+    S.panel = {mode:"assign", selected:null};
+  }
+  render();
+}
+
+function selectBrigade(n){
+  if(!S.panel) return;
+  if(S.panel.mode!=="assign" && S.panel.mode!=="dup") return;
+  S.panel.selected = n;
+  render();
+}
+
+function assign(){
+  if(!S.panel || S.panel.mode!=="assign") return;   /* после отказа и в блокирующих режимах ничего не отправляется */
+  if(S.panel.selected===null) return;
+  var r = req(S.open);
+  var n = S.panel.selected;
+
+  if(S.scenario===2 && r.id===1042 && !r.conflictSeen){
+    r.conflictSeen = true;
+    addHistory(r.id, "08:19:00", "Игорь назначил бригаду 2 — выполнено", false);
+    addHistory(r.id, tick(), "Ольга назначила бригаду " + n + " — отклонено, версия 1", true);
+    r.state = "assigned";
+    r.brigade = "2, Гаврилов";
+    r.version = 2;
+    S.panel = {mode:"conflict", selected:n};
+    return render();
+  }
+
+  r.state = "assigned";
+  r.brigade = brigadeLabel(n);
+  r.version += 1;
+  addHistory(r.id, tick(), "Ольга назначила бригаду " + n + " — выполнено", false);
+  S.open = null;
+  S.panel = null;
+  render();
+}
+
+function conflictAck(){
+  S.open = null;
+  S.panel = null;
+  render();
+}
+function conflictReassign(){
+  S.panel = {mode:"assign", selected:null};
+  render();
+}
+
+function retryData(){
+  if(!S.panel || S.panel.retrying) return;
+  S.panel.retrying = true;
+  render();
+  setTimeout(function(){
+    S.stale = false;
+    if(S.panel) S.panel = {mode:"assign", selected:S.panel.selected};
+    render();
+  }, 1500);
+}
+
+function mergeDup(){
+  var r = req(S.open);
+  r.state = "merged";
+  r.dup = false;
+  r.brigade = "";
+  addHistory(r.id, tick(), "Ольга объединила заявку 1043 с 1039 — выполнено", false);
+  S.open = null;
+  S.panel = null;
+  render();
+}
+function keepDup(){
+  var r = req(S.open);
+  r.dup = false;
+  S.panel = {mode: (S.stale ? "stale" : "assign"), selected:S.panel.selected, retrying:false};
+  render();
+}
+
+/* --- отрисовка --- */
+function brigadesHtml(disabledLook){
+  var h = '<div class="brigades' + (disabledLook ? " dim" : "") + '">';
+  for(var i=0;i<BRIGADES.length;i++){
+    var b = BRIGADES[i];
+    var sel = (S.panel && S.panel.selected===b.n) ? " selected" : "";
+    h += '<div class="brigade'+sel+'" data-brigade="'+b.n+'">'
+       +   '<div class="brigade-name">'+b.n+', '+b.chief+'</div>'
+       +   '<div class="brigade-meta">'+b.district+' · активных заявок: '+b.active+'</div>'
+       +   (b.tv ? '<div class="tag">борт для телеинспекции</div>' : '')
+       + '</div>';
+  }
+  return h + '</div>';
+}
+
+function assignButton(enabled, hint){
+  return '<div class="panel-actions">'
+    + '<button class="btn btn-primary" data-act="assign"'+(enabled?"":" disabled")+'>Назначить</button>'
+    + (hint ? '<span class="hint">'+hint+'</span>' : '')
+    + '</div>';
+}
+
+function panelHtml(r){
+  var p = S.panel;
+  if(!p) return "";
+
+  if(p.mode==="denied"){
+    return '<div class="panel">'
+      + '<div class="notice notice-muted">'
+      +   '<b>Недостаточно прав.</b> Роль «Наблюдатель» не может назначать бригады. Обратитесь к старшему диспетчеру.'
+      + '</div>'
+      + '</div>';
+  }
+
+  if(p.mode==="conflict"){
+    return '<div class="panel">'
+      + '<div class="notice notice-danger">'
+      +   '<b>Назначение отклонено.</b> Заявку уже назначил Игорь в 08:19, бригада 2, Гаврилов.'
+      +   '<div class="notice-line">Ваш экран показывал устаревшие данные (версия 1, сейчас 2).</div>'
+      + '</div>'
+      + '<div class="panel-actions">'
+      +   '<button class="btn btn-secondary" data-act="ack">Понятно</button>'
+      +   '<button class="btn btn-primary" data-act="reassign">Переназначить</button>'
+      +   '<button class="btn btn-primary" disabled>Назначить</button>'
+      +   '<span class="hint">назначение отклонено, повторная отправка недоступна</span>'
+      + '</div>'
+      + '</div>';
+  }
+
+  if(p.mode==="dup"){
+    return '<div class="panel">'
+      + '<div class="notice notice-dup">'
+      +   '<b>На этом адресе уже есть активная заявка.</b> Заявка 1039, Мира, 22 к. 1, поступила от УК в 07:58, назначена бригада 5, Дроздов.'
+      +   '<div class="panel-actions" style="margin-top:10px">'
+      +     '<button class="btn btn-primary" data-act="merge">Объединить</button>'
+      +     '<button class="btn btn-secondary" data-act="keep">Это другая заявка</button>'
+      +   '</div>'
+      + '</div>'
+      + '<div class="panel-title">Бригады</div>'
+      + brigadesHtml(true)
+      + assignButton(false, "назначение недоступно, пока не выбрано одно из двух действий выше")
+      + '</div>';
+  }
+
+  if(p.mode==="stale"){
+    return '<div class="panel">'
+      + '<div class="notice notice-warn">'
+      +   '<b>Данные могли устареть.</b> Список бригад обновлён в '+S.staleAt+'. Свежие данные получить не удалось.'
+      +   '<div class="panel-actions" style="margin-top:10px">'
+      +     '<button class="btn btn-secondary" data-act="retry"'+(p.retrying?" disabled":"")+'>'
+      +       (p.retrying ? "Повтор запроса…" : "Повторить")
+      +     '</button>'
+      +   '</div>'
+      + '</div>'
+      + '<div class="panel-title">Бригады (последние известные данные)</div>'
+      + brigadesHtml(true)
+      + assignButton(false, "назначение недоступно, пока не обновятся данные")
+      + '</div>';
+  }
+
+  /* обычный режим */
+  return '<div class="panel">'
+    + '<div class="panel-title">Бригады</div>'
+    + brigadesHtml(false)
+    + assignButton(p.selected!==null, p.selected===null ? "выберите бригаду" : "")
+    + '</div>';
+}
+
+function historyHtml(r){
+  var items = S.history[r.id];
+  if(!items || !items.length) return "";
+  var h = '<div class="history"><div class="history-title">История действий</div>';
+  for(var i=0;i<items.length;i++){
+    var it = items[i];
+    h += '<div class="history-item'+(it.rejected?" rejected":"")+'">'
+       +   '<span class="t">'+it.time+'</span>'+it.text
+       + '</div>';
+  }
+  return h + '</div>';
+}
+
+function render(){
+  document.getElementById("role").textContent =
+    (S.role==="observer" ? "Наблюдатель: Ольга" : "Диспетчер: Ольга");
+
+  var btns = document.querySelectorAll("[data-scenario]");
+  for(var i=0;i<btns.length;i++){
+    var on = (parseInt(btns[i].getAttribute("data-scenario"),10)===S.scenario);
+    btns[i].className = "btn " + (on ? "btn-primary" : "btn-plain");
+  }
+
+  var html = "";
+  for(var j=0;j<S.requests.length;j++){
+    var r = S.requests[j];
+    var badge = (S.scenario===5 && r.dup)
+      ? '<span class="badge badge-dup">Возможный дубль</span>'
+      : stateBadge(r);
+
+    var actionable = (r.state==="new");
+    var actBtn = actionable
+      ? '<button class="btn btn-secondary btn-sm" data-act="open" data-id="'+r.id+'"'
+        + (S.role==="observer" ? " disabled" : "") + '>Назначить</button>'
+      : '<span class="hint">—</span>';
+
+    var cls = "req";
+    if(!canOpen(r)) cls += " static";
+    if(S.open===r.id) cls += " open";
+    if(r.state==="merged") cls += " merged";
+
+    html += '<tr class="'+cls+'" data-row="'+r.id+'">'
+      + '<td>'+r.id+'</td>'
+      + '<td>'+r.addr+'</td>'
+      + '<td>'+r.src+'</td>'
+      + '<td>'+r.at+'</td>'
+      + '<td>'+badge+'</td>'
+      + '<td>'+(r.brigade || '<span class="hint">—</span>')+'</td>'
+      + '<td>'+actBtn+'</td>'
+      + '</tr>';
+
+    var detail = (S.open===r.id ? panelHtml(r) : "") + historyHtml(r);
+    if(detail){
+      html += '<tr class="detail"><td class="detail-cell" colspan="7">'+detail+'</td></tr>';
+    }
+  }
+  document.getElementById("tbody").innerHTML = html;
+}
+
+/* --- события --- */
+document.addEventListener("click", function(e){
+  var sc = e.target.closest("[data-scenario]");
+  if(sc){ setScenario(parseInt(sc.getAttribute("data-scenario"),10)); return; }
+
+  var act = e.target.closest("[data-act]");
+  if(act){
+    if(act.disabled) return;
+    var a = act.getAttribute("data-act");
+    if(a==="open"){ e.stopPropagation(); openRow(parseInt(act.getAttribute("data-id"),10)); return; }
+    if(a==="assign")   return assign();
+    if(a==="ack")      return conflictAck();
+    if(a==="reassign") return conflictReassign();
+    if(a==="retry")    return retryData();
+    if(a==="merge")    return mergeDup();
+    if(a==="keep")     return keepDup();
+    return;
+  }
+
+  var br = e.target.closest("[data-brigade]");
+  if(br){ selectBrigade(parseInt(br.getAttribute("data-brigade"),10)); return; }
+
+  var row = e.target.closest("[data-row]");
+  if(row){ openRow(parseInt(row.getAttribute("data-row"),10)); return; }
+});
+
+setScenario(1);
+</script>
+</body>
+</html>
