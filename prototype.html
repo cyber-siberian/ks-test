@@ -76,6 +76,8 @@ h1,h2,h3,.brand{font-family:"PT Sans", system-ui, -apple-system, "Segoe UI", Rob
 .btn-plain{border-color:var(--border)}
 .btn-plain:hover:not(:disabled){background:#F0F0F0}
 .btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.is-locked{opacity:.45;cursor:not-allowed}
+.btn.is-locked:hover{background:var(--surface)}
 .btn-sm{padding:4px 10px;font-size:13px}
 
 /* заголовок области */
@@ -126,7 +128,6 @@ td.detail-cell{padding:0;background:#FAFAFA}
   cursor:pointer;
 }
 .brigade:hover{border-color:var(--brand-blue-2)}
-.brigade.selected{border-color:var(--brand-blue);background:#F2F6FC}
 .brigade.refused{background:#F2F2F2;color:var(--text-muted);cursor:not-allowed;pointer-events:none}
 .brigade.refused .brigade-name{color:var(--text-muted)}
 .brigade-name{font-weight:600}
@@ -139,6 +140,14 @@ td.detail-cell{padding:0;background:#FAFAFA}
 .tag-refused{color:var(--text-muted);background:#EAEAEA;border-color:#DCDCDC}
 .dim{opacity:.6;pointer-events:none}
 .panel-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.reason{display:block;margin-bottom:6px;cursor:pointer}
+.reason input{margin-right:8px}
+.comment{
+  display:block;width:100%;max-width:520px;min-height:64px;
+  font-family:inherit;font-size:14px;color:var(--text);
+  padding:8px 10px;margin:8px 0 12px;
+  background:var(--surface);border:1px solid var(--border);border-radius:4px;
+}
 .hint{color:var(--text-muted);font-size:13px}
 
 /* плашки */
@@ -383,44 +392,33 @@ function isRefused(r, n){
 function openRow(id){
   var r = req(id);
   if(S.open===id){ S.open=null; S.panel=null; return render(); }
-  if(S.role==="observer"){
-    S.open = id;
-    S.panel = {mode:"denied"};
-    return render();
-  }
+  if(S.role==="observer") return showDenied(id, "assign");
   if(r.state!=="new") return;
   S.open = id;
   if(r.dup){
-    S.panel = {mode:"dup", selected:null};
+    S.panel = {mode:"dup"};
   } else if(S.stale){
-    S.panel = {mode:"stale", selected:null, retrying:false};
+    S.panel = {mode:"stale", retrying:false};
   } else {
-    S.panel = {mode:"assign", selected:null};
+    S.panel = {mode:"assign"};
   }
   render();
 }
 
-function selectBrigade(n){
-  if(!S.panel || S.panel.mode!=="assign") return;
-  if(isRefused(req(S.open), n)) return;
-  S.panel.selected = n;
-  render();
-}
-
-function assign(){
-  if(!S.panel || S.panel.mode!=="assign") return;   /* после отказа и в блокирующих режимах ничего не отправляется */
-  if(S.panel.selected===null) return;
+/* клик по бригаде сразу отправляет назначение, отдельного подтверждения нет */
+function assign(n){
+  if(!S.panel || S.panel.mode!=="assign") return;   /* в блокирующих режимах ничего не отправляется */
   var r = req(S.open);
-  var n = S.panel.selected;
+  if(isRefused(r, n)) return;
 
   if(S.scenario===2 && r.id===1042 && !r.conflictSeen){
     r.conflictSeen = true;
     addHistory(r.id, "08:19:00", "Игорь: назначена бригада 2");
-    addHistory(r.id, tick(), "Ольга: назначена бригада " + n, "отклонено, версия 1, сейчас 2");
+    addHistory(r.id, tick(), "Ольга: назначена бригада " + n, "отклонено, устаревшая версия заявки");
     r.state = "assigned";
     r.brigadeNum = 2;
     r.version = 2;
-    S.panel = {mode:"conflict", selected:n};
+    S.panel = {mode:"conflict"};
     return render();
   }
 
@@ -434,7 +432,7 @@ function assign(){
 }
 
 function conflictAck(){ S.open=null; S.panel=null; render(); }
-function conflictReassign(){ S.panel = {mode:"assign", selected:null}; render(); }
+function conflictReassign(){ S.panel = {mode:"assign"}; render(); }
 
 function retryData(){
   if(!S.panel || S.panel.retrying) return;
@@ -442,7 +440,7 @@ function retryData(){
   render();
   setTimeout(function(){
     S.stale = false;
-    if(S.panel) S.panel = {mode:"assign", selected:S.panel.selected};
+    if(S.panel) S.panel = {mode:"assign"};
     render();
   }, 1500);
 }
@@ -460,17 +458,17 @@ function mergeDup(){
 function keepDup(){
   var r = req(S.open);
   r.dup = false;
-  S.panel = {mode: (S.stale ? "stale" : "assign"), selected:null, retrying:false};
+  S.panel = {mode: (S.stale ? "stale" : "assign"), retrying:false};
   render();
 }
 
 /* --- отметки статуса --- */
-function depart(id){
+function arrive(id){
   if(S.role==="observer") return;
   var r = req(id);
   if(r.state!=="assigned") return;
   r.state = "work";
-  addHistory(id, tick(), "Ольга: бригада выехала");
+  addHistory(id, tick(), "Ольга: бригада на объекте");
   render();
 }
 function finish(id){
@@ -482,24 +480,48 @@ function finish(id){
   if(S.open===id){ S.open=null; S.panel=null; }
   render();
 }
-function openRefuse(id){
+function openChange(id){
   if(S.role==="observer") return;
   var r = req(id);
   if(r.state!=="assigned" && r.state!=="work") return;
   S.open = id;
-  S.panel = {mode:"refuse"};
+  S.panel = {mode:"change", comment:"", noReason:false};
   render();
 }
-function chooseReason(reason){
+
+function readComment(){
+  var el = document.getElementById("change-comment");
+  return el ? el.value.trim() : "";
+}
+
+function submitChange(){
   var r = req(S.open);
+  var picked = document.querySelector('input[name="change-reason"]:checked');
+  if(!picked){
+    S.panel.comment = readComment();
+    S.panel.noReason = true;
+    return render();
+  }
+  var reason = picked.value;
+  var comment = readComment();
   var t = tick();
   var n = r.brigadeNum;
-  r.refused.push({n:n, time:t.slice(0,5)});
-  addHistory(r.id, t, "Ольга: бригада " + n + " отказалась, " + reason, "", true);
+
+  /* отказ бригады закрывает её для этой заявки, ошибка выбора — нет */
+  if(reason==="отказ бригады") r.refused.push({n:n, time:t.slice(0,5)});
+
+  addHistory(r.id, t, "Ольга: бригада " + n + " снята, " + reason + (comment ? ", " + comment : ""),
+             "", reason==="отказ бригады");
   r.state = "new";
   r.brigadeNum = null;
   S.open = null;
   S.panel = null;
+  render();
+}
+
+function showDenied(id, kind){
+  S.open = id;
+  S.panel = {mode:"denied", kind:kind};
   render();
 }
 
@@ -510,8 +532,7 @@ function brigadesHtml(disabledLook){
   for(var i=0;i<BRIGADES.length;i++){
     var b = BRIGADES[i];
     var ref = isRefused(r, b.n);
-    var sel = (!ref && S.panel && S.panel.selected===b.n) ? " selected" : "";
-    h += '<div class="brigade'+sel+(ref?" refused":"")+'" data-brigade="'+b.n+'">'
+    h += '<div class="brigade'+(ref?" refused":"")+'" data-brigade="'+b.n+'">'
        +   '<div class="brigade-name">'+b.n+', '+b.chief
        +     '<span class="brigade-phone">'+b.phone+'</span>'
        +   '</div>'
@@ -523,11 +544,8 @@ function brigadesHtml(disabledLook){
   return h + '</div>';
 }
 
-function assignButton(enabled, hint){
-  return '<div class="panel-actions">'
-    + '<button class="btn btn-primary" data-act="assign"'+(enabled?"":" disabled")+'>Назначить</button>'
-    + (hint ? '<span class="hint">'+hint+'</span>' : '')
-    + '</div>';
+function panelHint(text){
+  return '<div class="panel-actions"><span class="hint">'+text+'</span></div>';
 }
 
 function panelHtml(r){
@@ -535,20 +553,26 @@ function panelHtml(r){
   if(!p) return "";
 
   if(p.mode==="denied"){
+    var text = (p.kind==="status")
+      ? 'Роль «Наблюдатель» не может отмечать статус заявки и менять бригаду. Обратитесь к старшему диспетчеру.'
+      : 'Роль «Наблюдатель» не может назначать бригады. Обратитесь к старшему диспетчеру.';
     return '<div class="panel">'
-      + '<div class="notice notice-muted">'
-      +   '<b>Недостаточно прав.</b> Роль «Наблюдатель» не может назначать бригады. Обратитесь к старшему диспетчеру.'
-      + '</div>'
+      + '<div class="notice notice-muted"><b>Недостаточно прав.</b> ' + text + '</div>'
       + '</div>';
   }
 
-  if(p.mode==="refuse"){
+  if(p.mode==="change"){
     return '<div class="panel">'
-      + '<div class="panel-title">Причина отказа бригады '+r.brigadeNum+', '+brigade(r.brigadeNum).chief+'</div>'
+      + '<div class="panel-title">Изменить бригаду '+r.brigadeNum+', '+brigade(r.brigadeNum).chief+'</div>'
+      + '<label class="reason"><input type="radio" name="change-reason" value="ошибка выбора">Ошибка выбора</label>'
+      + '<label class="reason"><input type="radio" name="change-reason" value="отказ бригады">Отказ бригады</label>'
+      + '<textarea id="change-comment" class="comment" placeholder="Причина словами, если нужно">'
+      +   (p.comment || "")
+      + '</textarea>'
       + '<div class="panel-actions">'
-      +   '<button class="btn btn-secondary" data-act="reason" data-reason="техника">Техника</button>'
-      +   '<button class="btn btn-secondary" data-act="reason" data-reason="задержка на предыдущем объекте">Задержка на предыдущем объекте</button>'
-      +   '<button class="btn btn-secondary" data-act="reason" data-reason="другое">Другое</button>'
+      +   '<button class="btn btn-primary" data-act="change-submit">Отправить</button>'
+      +   '<button class="btn btn-secondary" data-act="change-cancel">Отмена</button>'
+      +   (p.noReason ? '<span class="hint">выберите причину</span>' : '')
       + '</div>'
       + '</div>';
   }
@@ -557,13 +581,12 @@ function panelHtml(r){
     return '<div class="panel">'
       + '<div class="notice notice-danger">'
       +   '<b>Назначение отклонено.</b> Заявку уже назначил Игорь в 08:19, бригада 2, Гаврилов.'
-      +   '<div class="notice-line">Ваш экран показывал устаревшие данные (версия 1, сейчас 2).</div>'
+      +   '<div class="notice-line">Ваш экран показывал устаревшую версию заявки.</div>'
       + '</div>'
       + '<div class="panel-actions">'
       +   '<button class="btn btn-secondary" data-act="ack">Понятно</button>'
       +   '<button class="btn btn-primary" data-act="reassign">Переназначить</button>'
-      +   '<button class="btn btn-primary" disabled>Назначить</button>'
-      +   '<span class="hint">назначение отклонено, повторная отправка недоступна</span>'
+      +   '<span class="hint">назначение отклонено, список бригад закрыт до переназначения</span>'
       + '</div>'
       + '</div>';
   }
@@ -579,7 +602,7 @@ function panelHtml(r){
       + '</div>'
       + '<div class="panel-title">Бригады</div>'
       + brigadesHtml(true)
-      + assignButton(false, "назначение недоступно, пока не выбрано одно из двух действий выше")
+      + panelHint("назначение недоступно, пока не выбрано одно из двух действий выше")
       + '</div>';
   }
 
@@ -595,14 +618,14 @@ function panelHtml(r){
       + '</div>'
       + '<div class="panel-title">Бригады (последние известные данные)</div>'
       + brigadesHtml(true)
-      + assignButton(false, "назначение недоступно, пока не обновятся данные")
+      + panelHint("назначение недоступно, пока не обновятся данные")
       + '</div>';
   }
 
   return '<div class="panel">'
     + '<div class="panel-title">Бригады</div>'
     + brigadesHtml(false)
-    + assignButton(p.selected!==null, p.selected===null ? "выберите бригаду" : "")
+    + panelHint("назначение отправляется кликом по бригаде")
     + '</div>';
 }
 
@@ -620,18 +643,25 @@ function historyHtml(r){
   return h + '</div>';
 }
 
+/* у наблюдателя кнопки остаются на месте, но заблокированы и по клику показывают причину */
+function rowButton(cls, act, id, label, deniedKind){
+  if(S.role==="observer"){
+    return '<button class="btn '+cls+' btn-sm is-locked" title="Недостаточно прав" data-act="denied"'
+      + ' data-id="'+id+'" data-kind="'+deniedKind+'">'+label+'</button>';
+  }
+  return '<button class="btn '+cls+' btn-sm" data-act="'+act+'" data-id="'+id+'">'+label+'</button>';
+}
+
 function actionsHtml(r){
-  var obs = (S.role==="observer");
-  var dis = obs ? " disabled" : "";
   var b = [];
   if(r.state==="new"){
-    b.push('<button class="btn btn-secondary btn-sm" data-act="open" data-id="'+r.id+'"'+dis+'>Назначить</button>');
+    b.push(rowButton("btn-secondary", "open", r.id, "Назначить", "assign"));
   } else if(r.state==="assigned"){
-    b.push('<button class="btn btn-secondary btn-sm" data-act="depart" data-id="'+r.id+'"'+dis+'>Бригада выехала</button>');
-    b.push('<button class="btn btn-danger-outline btn-sm" data-act="refuse" data-id="'+r.id+'"'+dis+'>Бригада отказалась</button>');
+    b.push(rowButton("btn-secondary", "arrive", r.id, "Бригада на объекте", "status"));
+    b.push(rowButton("btn-plain", "change", r.id, "Изменить бригаду", "status"));
   } else if(r.state==="work"){
-    b.push('<button class="btn btn-secondary btn-sm" data-act="finish" data-id="'+r.id+'"'+dis+'>Работы завершены</button>');
-    b.push('<button class="btn btn-danger-outline btn-sm" data-act="refuse" data-id="'+r.id+'"'+dis+'>Бригада отказалась</button>');
+    b.push(rowButton("btn-secondary", "finish", r.id, "Работы завершены", "status"));
+    b.push(rowButton("btn-plain", "change", r.id, "Изменить бригаду", "status"));
   }
   if(!b.length) return {html:'<span class="hint">—</span>', empty:true};
   return {html:'<div class="row-actions">'+b.join("")+'</div>', empty:false};
@@ -683,6 +713,8 @@ function render(){
 
 /* --- события --- */
 document.addEventListener("click", function(e){
+  if(e.target.closest("#change-comment") || e.target.closest("label.reason")) return;
+
   /* клик по адресу ведёт на карты и не раскрывает панель */
   if(e.target.closest("a.addr")){ e.stopPropagation(); return; }
 
@@ -694,12 +726,13 @@ document.addEventListener("click", function(e){
     if(act.disabled) return;
     var a = act.getAttribute("data-act");
     var id = parseInt(act.getAttribute("data-id"),10);
-    if(a==="open")     return openRow(id);
-    if(a==="depart")   return depart(id);
-    if(a==="finish")   return finish(id);
-    if(a==="refuse")   return openRefuse(id);
-    if(a==="reason")   return chooseReason(act.getAttribute("data-reason"));
-    if(a==="assign")   return assign();
+    if(a==="open")           return openRow(id);
+    if(a==="arrive")         return arrive(id);
+    if(a==="finish")         return finish(id);
+    if(a==="change")         return openChange(id);
+    if(a==="change-submit")  return submitChange();
+    if(a==="change-cancel"){ S.open=null; S.panel=null; return render(); }
+    if(a==="denied")         return showDenied(id, act.getAttribute("data-kind"));
     if(a==="ack")      return conflictAck();
     if(a==="reassign") return conflictReassign();
     if(a==="retry")    return retryData();
@@ -709,7 +742,7 @@ document.addEventListener("click", function(e){
   }
 
   var br = e.target.closest("[data-brigade]");
-  if(br){ selectBrigade(parseInt(br.getAttribute("data-brigade"),10)); return; }
+  if(br){ assign(parseInt(br.getAttribute("data-brigade"),10)); return; }
 
   var row = e.target.closest("[data-row]");
   if(row){ openRow(parseInt(row.getAttribute("data-row"),10)); return; }
