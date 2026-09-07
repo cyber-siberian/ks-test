@@ -156,6 +156,7 @@ td.detail-cell{padding:0;background:#FAFAFA}
 .history-item{font-size:13px}
 .history-item .t{color:var(--text-muted);margin-right:6px}
 .history-item.rejected{color:var(--brand-red)}
+.history-item .err{color:var(--brand-red)}
 
 /* мобильная вёрстка */
 @media (max-width: 900px){
@@ -206,9 +207,10 @@ td.detail-cell{padding:0;background:#FAFAFA}
   tr.req>td.cell-empty{display:none}
   tr.req>td[data-label="№"]{font-weight:700}
   .cell-when{text-align:right}
-  tr.req>td[data-label="Действие"]{align-items:flex-start;padding:8px 0 4px}
-  .row-actions{justify-content:flex-end;flex:1 1 auto}
-  .row-actions .btn{flex:1 1 auto;text-align:center}
+  tr.req>td[data-label="Действие"]{display:block;padding:8px 0 4px}
+  tr.req>td[data-label="Действие"]::before{display:none}
+  .row-actions{flex-direction:column;gap:6px}
+  .row-actions .btn{width:100%;text-align:center}
   tr.detail{margin-bottom:8px}
   td.detail-cell{border:1px solid var(--border);border-top:none;border-radius:0 0 4px 4px}
   .panel{padding:12px;border-bottom:none}
@@ -327,9 +329,15 @@ function tick(){
   S.clock += 30;
   return t;
 }
-function addHistory(id, time, text, rejected){
+/* запись истории: «Имя: действие», у неудачных попыток сбоку хвост с текстом ошибки */
+function addHistory(id, time, text, err, red){
   if(!S.history[id]) S.history[id] = [];
-  S.history[id].push({time:time, text:text, rejected:!!rejected});
+  S.history[id].push({
+    time: time,
+    text: text,
+    err: err || "",
+    red: (red === undefined ? !!err : !!red)
+  });
 }
 
 function setScenario(n){
@@ -407,8 +415,8 @@ function assign(){
 
   if(S.scenario===2 && r.id===1042 && !r.conflictSeen){
     r.conflictSeen = true;
-    addHistory(r.id, "08:19:00", "Игорь назначил бригаду 2 — выполнено", false);
-    addHistory(r.id, tick(), "Ольга назначила бригаду " + n + " — отклонено, версия 1", true);
+    addHistory(r.id, "08:19:00", "Игорь: назначена бригада 2");
+    addHistory(r.id, tick(), "Ольга: назначена бригада " + n, "отклонено, версия 1, сейчас 2");
     r.state = "assigned";
     r.brigadeNum = 2;
     r.version = 2;
@@ -419,7 +427,7 @@ function assign(){
   r.state = "assigned";
   r.brigadeNum = n;
   r.version += 1;
-  addHistory(r.id, tick(), "Ольга назначила бригаду " + n + " — выполнено", false);
+  addHistory(r.id, tick(), "Ольга: назначена бригада " + n);
   S.open = null;
   S.panel = null;
   render();
@@ -444,7 +452,7 @@ function mergeDup(){
   r.state = "merged";
   r.dup = false;
   r.brigadeNum = null;
-  addHistory(r.id, tick(), "Ольга объединила заявку 1043 с 1039 — выполнено", false);
+  addHistory(r.id, tick(), "Ольга: заявка объединена с 1039");
   S.open = null;
   S.panel = null;
   render();
@@ -462,7 +470,7 @@ function depart(id){
   var r = req(id);
   if(r.state!=="assigned") return;
   r.state = "work";
-  addHistory(id, tick(), "Ольга: бригада выехала", false);
+  addHistory(id, tick(), "Ольга: бригада выехала");
   render();
 }
 function finish(id){
@@ -470,7 +478,7 @@ function finish(id){
   var r = req(id);
   if(r.state!=="work") return;
   r.state = "closed";
-  addHistory(id, tick(), "Ольга: работы завершены", false);
+  addHistory(id, tick(), "Ольга: работы завершены");
   if(S.open===id){ S.open=null; S.panel=null; }
   render();
 }
@@ -487,7 +495,7 @@ function chooseReason(reason){
   var t = tick();
   var n = r.brigadeNum;
   r.refused.push({n:n, time:t.slice(0,5)});
-  addHistory(r.id, t, "Ольга: бригада " + n + " отказалась, " + reason, true);
+  addHistory(r.id, t, "Ольга: бригада " + n + " отказалась, " + reason, "", true);
   r.state = "new";
   r.brigadeNum = null;
   S.open = null;
@@ -604,8 +612,9 @@ function historyHtml(r){
   var h = '<div class="history"><div class="history-title">История действий</div>';
   for(var i=0;i<items.length;i++){
     var it = items[i];
-    h += '<div class="history-item'+(it.rejected?" rejected":"")+'">'
+    h += '<div class="history-item'+(it.red?" rejected":"")+'">'
        +   '<span class="t">'+it.time+'</span>'+it.text
+       +   (it.err ? '<span class="err"> — '+it.err+'</span>' : '')
        + '</div>';
   }
   return h + '</div>';
