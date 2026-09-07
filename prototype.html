@@ -146,6 +146,64 @@ td.detail-cell{padding:0;background:#FAFAFA}
 .history-item{font-size:13px}
 .history-item .t{color:var(--text-muted);margin-right:6px}
 .history-item.rejected{color:var(--brand-red)}
+
+/* мобильная вёрстка */
+@media (max-width: 780px){
+  body{font-size:15px}
+  .header{padding:12px 14px;flex-direction:column;align-items:flex-start;gap:2px}
+  .header-right{font-size:13px}
+  .wrap{padding:12px 12px 40px}
+  .scenarios{padding:10px 12px}
+  .scenarios-row{gap:6px}
+  .scenarios-row .btn{flex:1 1 46%;text-align:center}
+  .page-head{flex-direction:column;align-items:flex-start;gap:2px;margin-bottom:10px}
+  .brigades{grid-template-columns:1fr}
+  .btn{padding:9px 14px}
+
+  table{border:none;background:transparent}
+  thead{display:none}
+  table, tbody, tr, td{display:block}
+  tr.req{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:4px;
+    margin-bottom:8px;
+    padding:6px 12px;
+  }
+  tr.req.has-detail{margin-bottom:0;border-bottom:none;border-radius:4px 4px 0 0}
+  tr.req.open{background:#F2F6FC}
+  tr.req.merged{background:#F2F2F2;color:var(--text-muted)}
+  tr.req>td, tr.req:hover>td, tr.req.open>td, tr.req.merged>td{
+    background:transparent;
+    border:none;
+    padding:4px 0;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+  }
+  tr.req>td::before{
+    content:attr(data-label);
+    flex:0 0 auto;
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:.4px;
+    color:var(--text-muted);
+  }
+  tr.req>td.cell-empty{display:none}
+  tr.req>td[data-label="№"]{font-weight:700}
+  tr.detail{margin-bottom:8px}
+  td.detail-cell{border:1px solid var(--border);border-top:none;border-radius:0 0 4px 4px}
+  .panel{padding:12px;border-bottom:none}
+  .history{border-bottom:none}
+  .panel-actions{gap:8px}
+  .panel-actions .btn{flex:1 1 auto}
+  .hint{flex-basis:100%}
+}
+
+@media (max-width: 420px){
+  .scenarios-row .btn{flex:1 1 100%}
+}
 </style>
 </head>
 <body>
@@ -495,17 +553,19 @@ function render(){
     if(S.open===r.id) cls += " open";
     if(r.state==="merged") cls += " merged";
 
+    var detail = (S.open===r.id ? panelHtml(r) : "") + historyHtml(r);
+    if(detail) cls += " has-detail";
+
     html += '<tr class="'+cls+'" data-row="'+r.id+'">'
-      + '<td>'+r.id+'</td>'
-      + '<td>'+r.addr+'</td>'
-      + '<td>'+r.src+'</td>'
-      + '<td>'+r.at+'</td>'
-      + '<td>'+badge+'</td>'
-      + '<td>'+(r.brigade || '<span class="hint">—</span>')+'</td>'
-      + '<td>'+actBtn+'</td>'
+      + '<td data-label="№">'+r.id+'</td>'
+      + '<td data-label="Адрес">'+r.addr+'</td>'
+      + '<td data-label="Источник">'+r.src+'</td>'
+      + '<td data-label="Поступила">'+r.at+'</td>'
+      + '<td data-label="Состояние">'+badge+'</td>'
+      + '<td data-label="Бригада"'+(r.brigade ? '' : ' class="cell-empty"')+'>'+(r.brigade || '<span class="hint">—</span>')+'</td>'
+      + '<td data-label="Действие"'+(actionable ? '' : ' class="cell-empty"')+'>'+actBtn+'</td>'
       + '</tr>';
 
-    var detail = (S.open===r.id ? panelHtml(r) : "") + historyHtml(r);
     if(detail){
       html += '<tr class="detail"><td class="detail-cell" colspan="7">'+detail+'</td></tr>';
     }
