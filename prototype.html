@@ -43,7 +43,7 @@ h1,h2,h3,.brand{font-family:"PT Sans", system-ui, -apple-system, "Segoe UI", Rob
 
 .wrap{padding:16px 24px 48px}
 
-/* служебная панель прототипа */
+/* панель сценариев */
 .scenarios{
   background:#EFEFEF;
   border:1px solid var(--border);
@@ -53,7 +53,6 @@ h1,h2,h3,.brand{font-family:"PT Sans", system-ui, -apple-system, "Segoe UI", Rob
 }
 .scenarios-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .scenarios-label{font-weight:600;margin-right:4px}
-.scenarios-note{color:var(--text-muted);font-size:12px;margin-top:8px}
 
 /* кнопки */
 .btn{
@@ -72,6 +71,8 @@ h1,h2,h3,.brand{font-family:"PT Sans", system-ui, -apple-system, "Segoe UI", Rob
 .btn-secondary:hover:not(:disabled){background:#EEF3FA}
 .btn-danger{background:var(--brand-red);border-color:var(--brand-red);color:#fff}
 .btn-danger:hover:not(:disabled){background:#E03A00;border-color:#E03A00}
+.btn-danger-outline{background:var(--surface);border-color:var(--brand-red);color:var(--brand-red)}
+.btn-danger-outline:hover:not(:disabled){background:#FFF1EC}
 .btn-plain{border-color:var(--border)}
 .btn-plain:hover:not(:disabled){background:#F0F0F0}
 .btn:disabled{opacity:.45;cursor:not-allowed}
@@ -91,14 +92,18 @@ tr.req:hover>td{background:#F7F9FC}
 tr.req.static{cursor:default}
 tr.req.static:hover>td{background:transparent}
 tr.req.open>td{background:#F2F6FC}
-tr.req.merged>td{background:#F2F2F2;color:var(--text-muted)}
+tr.req.done>td{background:#F2F2F2;color:var(--text-muted)}
 td.detail-cell{padding:0;background:#FAFAFA}
 .col-num{width:72px}
-.col-src{width:100px}
-.col-time{width:100px}
-.col-state{width:180px}
-.col-brig{width:170px}
-.col-act{width:130px}
+.col-src{width:96px}
+.col-when{width:118px}
+.col-state{width:170px}
+.col-brig{width:150px}
+.col-act{width:250px}
+.cell-when .hint{display:block}
+.addr{color:var(--link);text-decoration:none}
+.addr:hover{text-decoration:underline}
+.row-actions{display:flex;flex-wrap:wrap;gap:6px}
 
 /* метки состояния */
 .badge{display:inline-block;padding:2px 9px;border-radius:4px;font-size:13px;border:1px solid transparent;white-space:nowrap}
@@ -106,6 +111,7 @@ td.detail-cell{padding:0;background:#FAFAFA}
 .badge-assigned{background:#E4EDF9;color:var(--brand-blue)}
 .badge-work{background:var(--brand-yellow);color:#5A4600}
 .badge-dup{background:var(--brand-yellow);color:#3A2E00;border-color:var(--brand-red)}
+.badge-closed{background:#E8E8E8;color:#6A6A6A}
 .badge-merged{background:#E8E8E8;color:#6A6A6A}
 
 /* панель назначения */
@@ -121,12 +127,16 @@ td.detail-cell{padding:0;background:#FAFAFA}
 }
 .brigade:hover{border-color:var(--brand-blue-2)}
 .brigade.selected{border-color:var(--brand-blue);background:#F2F6FC}
+.brigade.refused{background:#F2F2F2;color:var(--text-muted);cursor:not-allowed;pointer-events:none}
+.brigade.refused .brigade-name{color:var(--text-muted)}
 .brigade-name{font-weight:600}
+.brigade-phone{font-weight:400;color:var(--text-muted);margin-left:6px}
 .brigade-meta{color:var(--text-muted);font-size:13px}
 .tag{
   display:inline-block;margin-top:4px;font-size:12px;
   border:1px solid var(--border);border-radius:4px;padding:1px 6px;color:var(--brand-blue);background:#F4F7FC;
 }
+.tag-refused{color:var(--text-muted);background:#EAEAEA;border-color:#DCDCDC}
 .dim{opacity:.6;pointer-events:none}
 .panel-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .hint{color:var(--text-muted);font-size:13px}
@@ -148,6 +158,9 @@ td.detail-cell{padding:0;background:#FAFAFA}
 .history-item.rejected{color:var(--brand-red)}
 
 /* мобильная вёрстка */
+@media (max-width: 900px){
+  .brigades{grid-template-columns:repeat(2,1fr)}
+}
 @media (max-width: 780px){
   body{font-size:15px}
   .header{padding:12px 14px;flex-direction:column;align-items:flex-start;gap:2px}
@@ -172,8 +185,8 @@ td.detail-cell{padding:0;background:#FAFAFA}
   }
   tr.req.has-detail{margin-bottom:0;border-bottom:none;border-radius:4px 4px 0 0}
   tr.req.open{background:#F2F6FC}
-  tr.req.merged{background:#F2F2F2;color:var(--text-muted)}
-  tr.req>td, tr.req:hover>td, tr.req.open>td, tr.req.merged>td{
+  tr.req.done{background:#F2F2F2;color:var(--text-muted)}
+  tr.req>td, tr.req:hover>td, tr.req.open>td, tr.req.done>td{
     background:transparent;
     border:none;
     padding:4px 0;
@@ -192,6 +205,10 @@ td.detail-cell{padding:0;background:#FAFAFA}
   }
   tr.req>td.cell-empty{display:none}
   tr.req>td[data-label="№"]{font-weight:700}
+  .cell-when{text-align:right}
+  tr.req>td[data-label="Действие"]{align-items:flex-start;padding:8px 0 4px}
+  .row-actions{justify-content:flex-end;flex:1 1 auto}
+  .row-actions .btn{flex:1 1 auto;text-align:center}
   tr.detail{margin-bottom:8px}
   td.detail-cell{border:1px solid var(--border);border-top:none;border-radius:0 0 4px 4px}
   .panel{padding:12px;border-bottom:none}
@@ -223,7 +240,6 @@ td.detail-cell{padding:0;background:#FAFAFA}
       <button class="btn btn-plain" data-scenario="4">4. Недостаточно прав</button>
       <button class="btn btn-plain" data-scenario="5">5. Возможный дубль</button>
     </div>
-    <div class="scenarios-note">служебная панель прототипа, в бою её нет</div>
   </div>
 
   <div class="page-head">
@@ -237,7 +253,7 @@ td.detail-cell{padding:0;background:#FAFAFA}
         <th class="col-num">№</th>
         <th>Адрес</th>
         <th class="col-src">Источник</th>
-        <th class="col-time">Поступила</th>
+        <th class="col-when">Поступила</th>
         <th class="col-state">Состояние</th>
         <th class="col-brig">Бригада</th>
         <th class="col-act">Действие</th>
@@ -251,29 +267,42 @@ td.detail-cell{padding:0;background:#FAFAFA}
 "use strict";
 
 var BRIGADES = [
-  {n:1,  chief:"Соколов",  district:"Центральный", active:2, tv:false},
-  {n:2,  chief:"Гаврилов", district:"Центральный", active:1, tv:true},
-  {n:3,  chief:"Ильин",    district:"Северный",    active:3, tv:false},
-  {n:4,  chief:"Панин",    district:"Северный",    active:0, tv:false},
-  {n:5,  chief:"Дроздов",  district:"Южный",       active:2, tv:false},
-  {n:6,  chief:"Кузьмин",  district:"Южный",       active:1, tv:true},
-  {n:7,  chief:"Лапин",    district:"Западный",    active:0, tv:false},
-  {n:8,  chief:"Ершов",    district:"Западный",    active:2, tv:false},
-  {n:9,  chief:"Тихонов",  district:"Восточный",   active:1, tv:true},
-  {n:10, chief:"Мельник",  district:"Восточный",   active:3, tv:false},
-  {n:11, chief:"Савин",    district:"Центральный", active:1, tv:false}
+  {n:1,  chief:"Соколов",  district:"Центральный", active:2, tv:false, phone:"+7 (812) 245-11-04"},
+  {n:2,  chief:"Гаврилов", district:"Центральный", active:1, tv:true,  phone:"+7 (812) 245-11-27"},
+  {n:3,  chief:"Ильин",    district:"Северный",    active:3, tv:false, phone:"+7 (812) 245-12-08"},
+  {n:4,  chief:"Панин",    district:"Северный",    active:0, tv:false, phone:"+7 (812) 245-12-41"},
+  {n:5,  chief:"Дроздов",  district:"Южный",       active:2, tv:false, phone:"+7 (812) 245-13-16"},
+  {n:6,  chief:"Кузьмин",  district:"Южный",       active:1, tv:true,  phone:"+7 (812) 245-13-59"},
+  {n:7,  chief:"Лапин",    district:"Западный",    active:0, tv:false, phone:"+7 (812) 245-14-02"},
+  {n:8,  chief:"Ершов",    district:"Западный",    active:2, tv:false, phone:"+7 (812) 245-14-73"},
+  {n:9,  chief:"Тихонов",  district:"Восточный",   active:1, tv:true,  phone:"+7 (812) 245-15-30"},
+  {n:10, chief:"Мельник",  district:"Восточный",   active:3, tv:false, phone:"+7 (812) 245-15-88"},
+  {n:11, chief:"Савин",    district:"Центральный", active:1, tv:false, phone:"+7 (812) 245-16-45"}
 ];
 
-function baseRequests(){
-  return [
-    {id:1039, addr:"Мира, 22 к. 1",      src:"УК",     at:"07:58", state:"assigned", brigade:"5, Дроздов", version:2},
-    {id:1040, addr:"Садовая, 7",         src:"Клиент", at:"08:02", state:"work",     brigade:"3, Ильин",   version:3},
-    {id:1041, addr:"Ленина, 14",         src:"УК",     at:"08:17", state:"new",      brigade:"",           version:1},
-    {id:1042, addr:"Гоголя, 11",         src:"УК",     at:"08:19", state:"new",      brigade:"",           version:1},
-    {id:1043, addr:"Мира, 22к1",         src:"Клиент", at:"09:05", state:"new",      brigade:"",           version:1},
-    {id:1044, addr:"Пролетарская, 12",   src:"Клиент", at:"09:12", state:"new",      brigade:"",           version:1}
-  ];
+/* дата в заявках — текущий день, чтобы экран не выглядел просроченным */
+function today(){
+  var d = new Date();
+  return pad(d.getDate()) + "." + pad(d.getMonth()+1) + "." + d.getFullYear();
 }
+
+var ALL_REQUESTS = {
+  1039: {id:1039, addr:"Мира, 22 к. 1",    src:"УК",     at:"07:58", state:"assigned", brigadeNum:5, version:2},
+  1040: {id:1040, addr:"Садовая, 7",       src:"Клиент", at:"08:02", state:"work",     brigadeNum:3, version:3},
+  1041: {id:1041, addr:"Ленина, 14",       src:"УК",     at:"08:17", state:"new",      brigadeNum:null, version:1},
+  1042: {id:1042, addr:"Гоголя, 11",       src:"УК",     at:"08:19", state:"new",      brigadeNum:null, version:1},
+  1043: {id:1043, addr:"Мира, 22к1",       src:"Клиент", at:"09:05", state:"new",      brigadeNum:null, version:1},
+  1044: {id:1044, addr:"Пролетарская, 12", src:"Клиент", at:"09:12", state:"new",      brigadeNum:null, version:1}
+};
+
+/* в каждом сценарии ключевая заявка идёт первой, остальные — только нужные для примера */
+var SCENARIO_REQUESTS = {
+  1: [1041, 1040, 1039],
+  2: [1042, 1039],
+  3: [1044, 1041],
+  4: [1041, 1040, 1039],
+  5: [1043, 1039]
+};
 
 var S = null;
 
@@ -285,7 +314,7 @@ function brigade(n){
   for(var i=0;i<BRIGADES.length;i++){ if(BRIGADES[i].n===n) return BRIGADES[i]; }
   return null;
 }
-function brigadeLabel(n){ var b=brigade(n); return b.n + ", " + b.chief; }
+function brigadeLabel(n){ var b=brigade(n); return b ? b.n + ", " + b.chief : ""; }
 
 /* условное время прототипа, шагает по 30 секунд */
 function pad(x){ return x<10 ? "0"+x : ""+x; }
@@ -304,10 +333,19 @@ function addHistory(id, time, text, rejected){
 }
 
 function setScenario(n){
+  var ids = SCENARIO_REQUESTS[n], list = [];
+  for(var i=0;i<ids.length;i++){
+    var src = ALL_REQUESTS[ids[i]];
+    list.push({
+      id:src.id, addr:src.addr, src:src.src, at:src.at, date:today(),
+      state:src.state, brigadeNum:src.brigadeNum, version:src.version,
+      refused:[], dup:false, conflictSeen:false
+    });
+  }
   S = {
     scenario: n,
     role: (n===4 ? "observer" : "dispatcher"),
-    requests: baseRequests(),
+    requests: list,
     history: {},
     open: null,
     panel: null,
@@ -315,7 +353,7 @@ function setScenario(n){
     staleAt: "08:12",
     clock: (n===2 ? 8*3600+19*60+30 : 9*3600+20*60)
   };
-  if(n===5){ req(1043).dup = true; }
+  if(n===5) req(1043).dup = true;
   render();
 }
 
@@ -323,13 +361,14 @@ function stateBadge(r){
   if(r.state==="new")      return '<span class="badge badge-new">Новая</span>';
   if(r.state==="assigned") return '<span class="badge badge-assigned">Назначена</span>';
   if(r.state==="work")     return '<span class="badge badge-work">В работе</span>';
+  if(r.state==="closed")   return '<span class="badge badge-closed">Закрыта</span>';
   if(r.state==="merged")   return '<span class="badge badge-merged">Объединена с 1039</span>';
   return "";
 }
 
-function canOpen(r){
-  if(S.role==="observer") return true;      /* откроется плашка о правах */
-  return r.state==="new";
+function isRefused(r, n){
+  for(var i=0;i<r.refused.length;i++){ if(r.refused[i].n===n) return r.refused[i]; }
+  return null;
 }
 
 /* --- открытие панели --- */
@@ -343,7 +382,7 @@ function openRow(id){
   }
   if(r.state!=="new") return;
   S.open = id;
-  if(S.scenario===5 && r.dup){
+  if(r.dup){
     S.panel = {mode:"dup", selected:null};
   } else if(S.stale){
     S.panel = {mode:"stale", selected:null, retrying:false};
@@ -354,8 +393,8 @@ function openRow(id){
 }
 
 function selectBrigade(n){
-  if(!S.panel) return;
-  if(S.panel.mode!=="assign" && S.panel.mode!=="dup") return;
+  if(!S.panel || S.panel.mode!=="assign") return;
+  if(isRefused(req(S.open), n)) return;
   S.panel.selected = n;
   render();
 }
@@ -371,14 +410,14 @@ function assign(){
     addHistory(r.id, "08:19:00", "Игорь назначил бригаду 2 — выполнено", false);
     addHistory(r.id, tick(), "Ольга назначила бригаду " + n + " — отклонено, версия 1", true);
     r.state = "assigned";
-    r.brigade = "2, Гаврилов";
+    r.brigadeNum = 2;
     r.version = 2;
     S.panel = {mode:"conflict", selected:n};
     return render();
   }
 
   r.state = "assigned";
-  r.brigade = brigadeLabel(n);
+  r.brigadeNum = n;
   r.version += 1;
   addHistory(r.id, tick(), "Ольга назначила бригаду " + n + " — выполнено", false);
   S.open = null;
@@ -386,15 +425,8 @@ function assign(){
   render();
 }
 
-function conflictAck(){
-  S.open = null;
-  S.panel = null;
-  render();
-}
-function conflictReassign(){
-  S.panel = {mode:"assign", selected:null};
-  render();
-}
+function conflictAck(){ S.open=null; S.panel=null; render(); }
+function conflictReassign(){ S.panel = {mode:"assign", selected:null}; render(); }
 
 function retryData(){
   if(!S.panel || S.panel.retrying) return;
@@ -411,7 +443,7 @@ function mergeDup(){
   var r = req(S.open);
   r.state = "merged";
   r.dup = false;
-  r.brigade = "";
+  r.brigadeNum = null;
   addHistory(r.id, tick(), "Ольга объединила заявку 1043 с 1039 — выполнено", false);
   S.open = null;
   S.panel = null;
@@ -420,20 +452,64 @@ function mergeDup(){
 function keepDup(){
   var r = req(S.open);
   r.dup = false;
-  S.panel = {mode: (S.stale ? "stale" : "assign"), selected:S.panel.selected, retrying:false};
+  S.panel = {mode: (S.stale ? "stale" : "assign"), selected:null, retrying:false};
+  render();
+}
+
+/* --- отметки статуса --- */
+function depart(id){
+  if(S.role==="observer") return;
+  var r = req(id);
+  if(r.state!=="assigned") return;
+  r.state = "work";
+  addHistory(id, tick(), "Ольга: бригада выехала", false);
+  render();
+}
+function finish(id){
+  if(S.role==="observer") return;
+  var r = req(id);
+  if(r.state!=="work") return;
+  r.state = "closed";
+  addHistory(id, tick(), "Ольга: работы завершены", false);
+  if(S.open===id){ S.open=null; S.panel=null; }
+  render();
+}
+function openRefuse(id){
+  if(S.role==="observer") return;
+  var r = req(id);
+  if(r.state!=="assigned" && r.state!=="work") return;
+  S.open = id;
+  S.panel = {mode:"refuse"};
+  render();
+}
+function chooseReason(reason){
+  var r = req(S.open);
+  var t = tick();
+  var n = r.brigadeNum;
+  r.refused.push({n:n, time:t.slice(0,5)});
+  addHistory(r.id, t, "Ольга: бригада " + n + " отказалась, " + reason, true);
+  r.state = "new";
+  r.brigadeNum = null;
+  S.open = null;
+  S.panel = null;
   render();
 }
 
 /* --- отрисовка --- */
 function brigadesHtml(disabledLook){
+  var r = req(S.open);
   var h = '<div class="brigades' + (disabledLook ? " dim" : "") + '">';
   for(var i=0;i<BRIGADES.length;i++){
     var b = BRIGADES[i];
-    var sel = (S.panel && S.panel.selected===b.n) ? " selected" : "";
-    h += '<div class="brigade'+sel+'" data-brigade="'+b.n+'">'
-       +   '<div class="brigade-name">'+b.n+', '+b.chief+'</div>'
+    var ref = isRefused(r, b.n);
+    var sel = (!ref && S.panel && S.panel.selected===b.n) ? " selected" : "";
+    h += '<div class="brigade'+sel+(ref?" refused":"")+'" data-brigade="'+b.n+'">'
+       +   '<div class="brigade-name">'+b.n+', '+b.chief
+       +     '<span class="brigade-phone">'+b.phone+'</span>'
+       +   '</div>'
        +   '<div class="brigade-meta">'+b.district+' · активных заявок: '+b.active+'</div>'
-       +   (b.tv ? '<div class="tag">борт для телеинспекции</div>' : '')
+       +   (b.tv && !ref ? '<div class="tag">борт для телеинспекции</div>' : '')
+       +   (ref ? '<div class="tag tag-refused">отказалась в '+ref.time+'</div>' : '')
        + '</div>';
   }
   return h + '</div>';
@@ -454,6 +530,17 @@ function panelHtml(r){
     return '<div class="panel">'
       + '<div class="notice notice-muted">'
       +   '<b>Недостаточно прав.</b> Роль «Наблюдатель» не может назначать бригады. Обратитесь к старшему диспетчеру.'
+      + '</div>'
+      + '</div>';
+  }
+
+  if(p.mode==="refuse"){
+    return '<div class="panel">'
+      + '<div class="panel-title">Причина отказа бригады '+r.brigadeNum+', '+brigade(r.brigadeNum).chief+'</div>'
+      + '<div class="panel-actions">'
+      +   '<button class="btn btn-secondary" data-act="reason" data-reason="техника">Техника</button>'
+      +   '<button class="btn btn-secondary" data-act="reason" data-reason="задержка на предыдущем объекте">Задержка на предыдущем объекте</button>'
+      +   '<button class="btn btn-secondary" data-act="reason" data-reason="другое">Другое</button>'
       + '</div>'
       + '</div>';
   }
@@ -504,7 +591,6 @@ function panelHtml(r){
       + '</div>';
   }
 
-  /* обычный режим */
   return '<div class="panel">'
     + '<div class="panel-title">Бригады</div>'
     + brigadesHtml(false)
@@ -525,6 +611,23 @@ function historyHtml(r){
   return h + '</div>';
 }
 
+function actionsHtml(r){
+  var obs = (S.role==="observer");
+  var dis = obs ? " disabled" : "";
+  var b = [];
+  if(r.state==="new"){
+    b.push('<button class="btn btn-secondary btn-sm" data-act="open" data-id="'+r.id+'"'+dis+'>Назначить</button>');
+  } else if(r.state==="assigned"){
+    b.push('<button class="btn btn-secondary btn-sm" data-act="depart" data-id="'+r.id+'"'+dis+'>Бригада выехала</button>');
+    b.push('<button class="btn btn-danger-outline btn-sm" data-act="refuse" data-id="'+r.id+'"'+dis+'>Бригада отказалась</button>');
+  } else if(r.state==="work"){
+    b.push('<button class="btn btn-secondary btn-sm" data-act="finish" data-id="'+r.id+'"'+dis+'>Работы завершены</button>');
+    b.push('<button class="btn btn-danger-outline btn-sm" data-act="refuse" data-id="'+r.id+'"'+dis+'>Бригада отказалась</button>');
+  }
+  if(!b.length) return {html:'<span class="hint">—</span>', empty:true};
+  return {html:'<div class="row-actions">'+b.join("")+'</div>', empty:false};
+}
+
 function render(){
   document.getElementById("role").textContent =
     (S.role==="observer" ? "Наблюдатель: Ольга" : "Диспетчер: Ольга");
@@ -538,32 +641,28 @@ function render(){
   var html = "";
   for(var j=0;j<S.requests.length;j++){
     var r = S.requests[j];
-    var badge = (S.scenario===5 && r.dup)
+    var badge = r.dup
       ? '<span class="badge badge-dup">Возможный дубль</span>'
       : stateBadge(r);
-
-    var actionable = (r.state==="new");
-    var actBtn = actionable
-      ? '<button class="btn btn-secondary btn-sm" data-act="open" data-id="'+r.id+'"'
-        + (S.role==="observer" ? " disabled" : "") + '>Назначить</button>'
-      : '<span class="hint">—</span>';
-
-    var cls = "req";
-    if(!canOpen(r)) cls += " static";
-    if(S.open===r.id) cls += " open";
-    if(r.state==="merged") cls += " merged";
+    var act = actionsHtml(r);
+    var brigadeCell = r.brigadeNum ? brigadeLabel(r.brigadeNum) : '<span class="hint">—</span>';
 
     var detail = (S.open===r.id ? panelHtml(r) : "") + historyHtml(r);
+
+    var cls = "req";
+    if(S.role!=="observer" && r.state!=="new") cls += " static";
+    if(S.open===r.id) cls += " open";
+    if(r.state==="closed" || r.state==="merged") cls += " done";
     if(detail) cls += " has-detail";
 
     html += '<tr class="'+cls+'" data-row="'+r.id+'">'
       + '<td data-label="№">'+r.id+'</td>'
-      + '<td data-label="Адрес">'+r.addr+'</td>'
+      + '<td data-label="Адрес"><a class="addr" href="https://yandex.ru/maps/?text='+encodeURIComponent(r.addr)+'" target="_blank" rel="noopener">'+r.addr+'</a></td>'
       + '<td data-label="Источник">'+r.src+'</td>'
-      + '<td data-label="Поступила">'+r.at+'</td>'
+      + '<td data-label="Поступила"><div class="cell-when">'+r.at+'<span class="hint">'+r.date+'</span></div></td>'
       + '<td data-label="Состояние">'+badge+'</td>'
-      + '<td data-label="Бригада"'+(r.brigade ? '' : ' class="cell-empty"')+'>'+(r.brigade || '<span class="hint">—</span>')+'</td>'
-      + '<td data-label="Действие"'+(actionable ? '' : ' class="cell-empty"')+'>'+actBtn+'</td>'
+      + '<td data-label="Бригада"'+(r.brigadeNum ? '' : ' class="cell-empty"')+'>'+brigadeCell+'</td>'
+      + '<td data-label="Действие"'+(act.empty ? ' class="cell-empty"' : '')+'>'+act.html+'</td>'
       + '</tr>';
 
     if(detail){
@@ -575,6 +674,9 @@ function render(){
 
 /* --- события --- */
 document.addEventListener("click", function(e){
+  /* клик по адресу ведёт на карты и не раскрывает панель */
+  if(e.target.closest("a.addr")){ e.stopPropagation(); return; }
+
   var sc = e.target.closest("[data-scenario]");
   if(sc){ setScenario(parseInt(sc.getAttribute("data-scenario"),10)); return; }
 
@@ -582,7 +684,12 @@ document.addEventListener("click", function(e){
   if(act){
     if(act.disabled) return;
     var a = act.getAttribute("data-act");
-    if(a==="open"){ e.stopPropagation(); openRow(parseInt(act.getAttribute("data-id"),10)); return; }
+    var id = parseInt(act.getAttribute("data-id"),10);
+    if(a==="open")     return openRow(id);
+    if(a==="depart")   return depart(id);
+    if(a==="finish")   return finish(id);
+    if(a==="refuse")   return openRefuse(id);
+    if(a==="reason")   return chooseReason(act.getAttribute("data-reason"));
     if(a==="assign")   return assign();
     if(a==="ack")      return conflictAck();
     if(a==="reassign") return conflictReassign();
