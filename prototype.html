@@ -315,6 +315,23 @@ var SCENARIO_REQUESTS = {
   5: [1043, 1039]
 };
 
+/* снимок активных заявок на 08:12 для сценария 3: пока данные не обновлены, экран
+   показывает последние известные цифры, а с ними и прежний порядок списка */
+var STALE_ACTIVE = {1:3, 2:2, 4:1, 7:2, 9:0};
+
+/* список бригад для панели: сверху те, у кого меньше активных заявок,
+   при равенстве — по номеру, чтобы порядок не прыгал */
+function brigadeList(){
+  var out = [];
+  for(var i=0;i<BRIGADES.length;i++){
+    var b = BRIGADES[i];
+    var active = (S.stale && STALE_ACTIVE[b.n] !== undefined) ? STALE_ACTIVE[b.n] : b.active;
+    out.push({n:b.n, chief:b.chief, district:b.district, tv:b.tv, phone:b.phone, active:active});
+  }
+  out.sort(function(x, y){ return (x.active - y.active) || (x.n - y.n); });
+  return out;
+}
+
 var S = null;
 
 function req(id){
@@ -528,9 +545,10 @@ function showDenied(id, kind){
 /* --- отрисовка --- */
 function brigadesHtml(disabledLook){
   var r = req(S.open);
+  var list = brigadeList();
   var h = '<div class="brigades' + (disabledLook ? " dim" : "") + '">';
-  for(var i=0;i<BRIGADES.length;i++){
-    var b = BRIGADES[i];
+  for(var i=0;i<list.length;i++){
+    var b = list[i];
     var ref = isRefused(r, b.n);
     h += '<div class="brigade'+(ref?" refused":"")+'" data-brigade="'+b.n+'">'
        +   '<div class="brigade-name">'+b.n+', '+b.chief
